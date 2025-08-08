@@ -1,0 +1,30 @@
+# Helm
+*.tgz
+.helm/
+
+# Kubernetes
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local development
+values-local.yaml
+values-dev.yaml
+values-test.yaml
+*.local
+
+# Backup files
+*.bak
+*~

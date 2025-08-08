@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "locust-distributed.fullname" . }}-master
+  labels:
+    {{- include "locust-distributed.masterLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.locust.master.replicas }}
+  selector:
+    matchLabels:
+      {{- include "locust-distributed.masterSelectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "locust-distributed.masterSelectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "locust-distributed.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: locust-master
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.locust.image.repository }}:{{ .Values.locust.image.tag }}"
+          imagePullPolicy: {{ .Values.locust.image.pullPolicy }}
+          command:
+            - locust
+          args:
+            - --master
+            - --master-bind-host=0.0.0.0
+            - --master-bind-port=5557
+            - --web-host=0.0.0.0
+            - --web-port=8089
+            - --host={{ .Values.locust.targetHost }}
+            - --locustfile=/mnt/locust/locustfile.py
+          ports:
+            - name: web
+              containerPort: 8089
+              protocol: TCP
+            - name: master-bind
+              containerPort: 5557
+              protocol: TCP
+            - name: master-comm
+              containerPort: 5558
+              protocol: TCP
+          env:
+            - name: LOCUST_MODE
+              value: "master"
+            - name: TARGET_HOST
+              value: {{ .Values.locust.targetHost | quote }}
+          volumeMounts:
+            - name: locust-scripts
+              mountPath: {{ .Values.storage.mountPath }}
+            - name: tmp
+              mountPath: /tmp
+          workingDir: {{ .Values.storage.mountPath }}
+          resources:
+            {{- toYaml .Values.locust.master.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: web
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: web
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: locust-scripts
+          {{- if .Values.storage.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "locust-distributed.fullname" . }}-storage
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

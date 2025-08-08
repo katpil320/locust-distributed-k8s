@@ -1,0 +1,141 @@
+# Default values for locust-distributed.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Locust configuration
+locust:
+  image:
+    repository: locustio/locust
+    tag: "2.31.8"
+    pullPolicy: IfNotPresent
+
+  # Target host for load testing (can be overridden in Locust Web UI)
+  targetHost: "https://<your-host>"
+
+  # Master configuration
+  master:
+    replicas: 0 # Initially scaled to 0
+
+    # Resources for the master pod, adjust as needed
+    # resources:
+    #   requests:
+    #     cpu: 100m
+    #     memory: 128Mi
+    #   limits:
+    #     cpu: 500m
+    #     memory: 512Mi
+    service:
+      type: ClusterIP
+      webPort: 8089
+      masterPort: 5557
+      workerPort: 5558
+
+  # Worker configuration
+  worker:
+    replicas: 0 # Initially scaled to 0
+
+    # Resources for the worker pods, adjust as needed
+    # resources:
+    #   requests:
+    #     cpu: 100m
+    #     memory: 128Mi
+    #   limits:
+    #     cpu: 200m
+    #     memory: 256Mi
+
+# File browser configuration
+filebrowser:
+  enabled: true
+  image:
+    repository: filebrowser/filebrowser
+    tag: "v2.30.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  # resources:
+  #   requests:
+  #     cpu: 50m
+  #     memory: 64Mi
+  #   limits:
+  #     cpu: 100m
+  #     memory: 128Mi
+  service:
+    type: ClusterIP
+    port: 8080
+
+# Shared storage configuration
+storage:
+  enabled: true
+  # Storage class that supports ReadWriteMany access mode
+  # Examples: aws-efs, azure-file, gcp-filestore, nfs-client, etc.
+  storageClass: "" # Leave empty to use default storage class
+  size: 1Gi
+  accessMode: ReadWriteMany
+  mountPath: /mnt/locust
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations:
+    {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+
+  # Locust web UI ingress
+  locust:
+    enabled: true
+    host: locust.local
+    path: /
+    pathType: Prefix
+    tls: []
+    #  - secretName: locust-tls
+    #    hosts:
+    #      - locust.local
+
+  # File browser ingress
+  filebrowser:
+    enabled: true
+    host: filebrowser.local
+    path: /
+    pathType: Prefix
+    tls: []
+    #  - secretName: filebrowser-tls
+    #    hosts:
+    #      - filebrowser.local
+
+# Service account
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 1001
+
+# Security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  capabilities:
+    drop:
+      - ALL
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

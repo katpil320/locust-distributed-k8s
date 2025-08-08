@@ -1,0 +1,92 @@
+🚀 Locust Distributed Load Testing has been installed!
+
+📋 Release Information:
+   Name:      {{ .Release.Name }}
+   Namespace: {{ .Release.Namespace }}
+   Version:   {{ .Chart.Version }}
+
+🏗️ Components Deployed:
+{{- if .Values.filebrowser.enabled }}
+   ✅ File Browser (for script management)
+{{- end }}
+   ✅ Locust Master (scaled to {{ .Values.locust.master.replicas }})
+   ✅ Locust Workers (scaled to {{ .Values.locust.worker.replicas }})
+{{- if .Values.storage.enabled }}
+   ✅ Shared Storage ({{ .Values.storage.size }})
+{{- end }}
+
+📁 Next Steps:
+
+1. 📤 Upload your test scripts:
+{{- if and .Values.ingress.enabled .Values.ingress.filebrowser.enabled }}
+   File Browser: https://{{ .Values.ingress.filebrowser.host }}
+{{- else }}
+   Port forward: kubectl port-forward service/{{ include "locust-distributed.fullname" . }}-filebrowser 8080:8080
+   Then visit: http://localhost:8080
+{{- end }}
+   Default credentials: admin / admin
+
+2. 🚀 Scale up Locust (if not already done):
+   kubectl scale deployment {{ include "locust-distributed.fullname" . }}-master --replicas=1
+   kubectl scale deployment {{ include "locust-distributed.fullname" . }}-worker --replicas={{ .Values.locust.worker.replicas }}
+
+3. 🌐 Access Locust Web UI:
+{{- if and .Values.ingress.enabled .Values.ingress.locust.enabled }}
+   Locust UI: https://{{ .Values.ingress.locust.host }}
+{{- else }}
+   Port forward: kubectl port-forward service/{{ include "locust-distributed.fullname" . }}-master 8089:8089
+   Then visit: http://localhost:8089
+{{- end }}
+
+📊 Useful Commands:
+
+   # Check pod status
+   kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+   # View master logs
+   kubectl logs deployment/{{ include "locust-distributed.fullname" . }}-master
+
+   # View worker logs
+   kubectl logs deployment/{{ include "locust-distributed.fullname" . }}-worker
+
+   # Scale workers
+   kubectl scale deployment {{ include "locust-distributed.fullname" . }}-worker --replicas=<desired-count>
+
+   # Access file browser
+   kubectl port-forward service/{{ include "locust-distributed.fullname" . }}-filebrowser 8080:8080
+
+   # Access Locust UI
+   kubectl port-forward service/{{ include "locust-distributed.fullname" . }}-master 8089:8089
+
+📖 Documentation:
+   - Examples: Check the examples/ directory in the repository
+   - Locust docs: https://docs.locust.io/
+   - Chart repo: https://github.com/katpil320/locust-distributed-helm
+
+{{- if not .Values.storage.enabled }}
+
+⚠️  WARNING: Shared storage is disabled. Your test scripts won't persist between pod restarts.
+   Consider enabling storage in values.yaml:
+   
+   storage:
+     enabled: true
+     storageClass: "your-rwx-storage-class"
+{{- end }}
+
+{{- if eq .Values.storage.storageClass "" }}
+
+⚠️  WARNING: No storage class specified. Using default storage class.
+   For production, specify a ReadWriteMany storage class:
+   
+   storage:
+     storageClass: "aws-efs"  # or azure-file, nfs-client, etc.
+{{- end }}
+
+{{- if and (eq (.Values.locust.master.replicas | int) 0) (eq (.Values.locust.worker.replicas | int) 0) }}
+
+💡 TIP: Both master and workers are scaled to 0. Scale them up when ready to test:
+   kubectl scale deployment {{ include "locust-distributed.fullname" . }}-master --replicas=1
+   kubectl scale deployment {{ include "locust-distributed.fullname" . }}-worker --replicas=3
+{{- end }}
+
+Happy Load Testing! 🎯

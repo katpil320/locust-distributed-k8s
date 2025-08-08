@@ -1,0 +1,103 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "locust-distributed.fullname" . -}}
+{{- $svcPort := .Values.locust.master.service.webPort -}}
+{{- if and .Values.ingress.className (not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class")) }}
+  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
+{{- end }}
+{{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
+apiVersion: networking.k8s.io/v1beta1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-locust
+  labels:
+    {{- include "locust-distributed.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.locust.tls }}
+  tls:
+    {{- range .Values.ingress.locust.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.locust.enabled }}
+    - host: {{ .Values.ingress.locust.host | quote }}
+      http:
+        paths:
+        - path: {{ .Values.ingress.locust.path }}
+          {{- if and .Values.ingress.locust.pathType (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+          pathType: {{ .Values.ingress.locust.pathType }}
+          {{- end }}
+          backend:
+            {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+            service:
+              name: {{ $fullName }}-master
+              port:
+                number: {{ $svcPort }}
+            {{- else }}
+            serviceName: {{ $fullName }}-master
+            servicePort: {{ $svcPort }}
+            {{- end }}
+    {{- end }}
+---
+{{- if and .Values.filebrowser.enabled .Values.ingress.filebrowser.enabled }}
+{{- $fbSvcPort := .Values.filebrowser.service.port -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-filebrowser
+  labels:
+    {{- include "locust-distributed.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and .Values.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.filebrowser.tls }}
+  tls:
+    {{- range .Values.ingress.filebrowser.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.filebrowser.host | quote }}
+      http:
+        paths:
+        - path: {{ .Values.ingress.filebrowser.path }}
+          {{- if and .Values.ingress.filebrowser.pathType (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+          pathType: {{ .Values.ingress.filebrowser.pathType }}
+          {{- end }}
+          backend:
+            {{- if semverCompare ">=1.19-0" .Capabilities.KubeVersion.GitVersion }}
+            service:
+              name: {{ $fullName }}-filebrowser
+              port:
+                number: {{ $fbSvcPort }}
+            {{- else }}
+            serviceName: {{ $fullName }}-filebrowser
+            servicePort: {{ $fbSvcPort }}
+            {{- end }}
+{{- end }}
+{{- end }}

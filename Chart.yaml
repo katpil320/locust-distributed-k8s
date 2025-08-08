@@ -1,0 +1,27 @@
+apiVersion: v2
+name: locust-distributed
+description: A Helm chart for distributed Locust load testing with file browser and shared storage
+type: application
+version: 0.2.0
+appVersion: "2.31.8"
+
+keywords:
+  - locust
+  - load-testing
+  - performance
+  - distributed
+  - kubernetes
+  - testing
+
+home: https://github.com/katpil320/locust-distributed-helm
+sources:
+  - https://github.com/katpil320/locust-distributed-helm
+  - https://github.com/locustio/locust
+
+maintainers:
+  - name: Martin Liptak
+    url: https://github.com/katpil320
+
+annotations:
+  category: Testing
+  licenses: Apache-2.0
